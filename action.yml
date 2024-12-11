@@ -15,17 +15,22 @@ runs:
           swift-prefix: swift-6.0.2-release/ubuntu2204/swift-6.0.2-RELEASE
           swift-id: swift-6.0.2-RELEASE-ubuntu22.04
       - name: Check Swift
+        shell: bash
         run: swift --version
       - name: Install Android SDK
+        shell: bash
         run:
           swift sdk install https://github.com/finagolfin/swift-android-sdk/releases/download/6.0.2/swift-6.0.2-RELEASE-android-24-0.1.artifactbundle.tar.gz --checksum d75615eac3e614131133c7cc2076b0b8fb4327d89dce802c25cd53e75e1881f4
       - name: Check Android SDK
+        shell: bash
         run:
           swift sdk configure --show-configuration swift-6.0.2-RELEASE-android-24-0.1 x86_64-unknown-linux-android24
       - name: Build Tests
+        shell: bash
         run:
           swift build --build-tests --swift-sdk x86_64-unknown-linux-android24 -Xswiftc -Xclang-linker -Xswiftc -fuse-ld=lld
       - name: Prepare Android Emulator Test Script
+        shell: bash
         run: |
           mkdir pack
           cp .build/x86_64-unknown-linux-android24/debug/*.xctest pack

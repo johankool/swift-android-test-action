@@ -112,7 +112,7 @@ runs:
         mkdir pack
         cp .build/${TARGET_TRIPLE}/debug/*.xctest pack
         
-        cp /home/runner/.config/swiftpm/swift-sdks/${SDK_ID}.artifactbundle/${ANDROID_SYS_ROOT}/usr/lib/${TARGET_TRIPLE}/lib*.so pack
+        cp /home/runner/.config/swiftpm/swift-sdks/${SDK_ID}.artifactbundle/${ANDROID_SYS_ROOT}/usr/lib/${{ inputs.android-arch }}-linux-android/${ANDROID_API_LEVEL}/lib*.so pack
         rm -f pack/lib{c,dl,log,m,z}.so
 
         set -x

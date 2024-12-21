@@ -126,6 +126,6 @@ runs:
     - name: Run Tests on Android Emulator
       uses: reactivecircus/android-emulator-runner@v2
       with:
-        api-level: ${{ env.ANDROID_API_LEVEL }}
+        api-level: 29
         arch: ${{ inputs.android-arch }}
         script: ~/test-toolchain.sh

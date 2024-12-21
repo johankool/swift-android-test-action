@@ -80,8 +80,8 @@ runs:
     - name: Install Swift
       uses: tayloraswift/swift-install-action@master
       with:
-        swift-prefix: ${{ SWIFT_PREFIX }}
-        swift-id: ${{ SWIFT_ID }}
+        swift-prefix: ${{ env.SWIFT_PREFIX }}
+        swift-id: ${{ env.SWIFT_ID }}
 
     - name: Check Swift
       shell: bash
@@ -122,6 +122,6 @@ runs:
     - name: Run Tests on Android Emulator
       uses: reactivecircus/android-emulator-runner@v2
       with:
-        api-level: ${ANDROID_API_LEVEL}
+        api-level: ${{ env.ANDROID_API_LEVEL }}
         arch: ${{ inputs.android-arch }}
         script: ~/test-toolchain.sh

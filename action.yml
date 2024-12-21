@@ -47,8 +47,8 @@ runs:
         echo "ANDROID_SDK_VERSION=$ANDROID_SDK_VERSION" >> $GITHUB_ENV
 
         # Extract the Ubuntu version 
-        VERSION=$(lsb_release -rs)
-        echo "UBUNTU_VERSION=$VERSION" >> $GITHUB_ENV
+        UBUNTU_VERSION=$(lsb_release -rs)
+        echo "UBUNTU_VERSION=$UBUNTU_VERSION" >> $GITHUB_ENV
 
         # Construct the SDK ID
         echo "SDK_ID=swift-$SWIFT_VERSION-RELEASE-android-$ANDROID_API_LEVEL-$ANDROID_SDK_VERSION" >> $GITHUB_ENV

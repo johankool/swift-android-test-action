@@ -4,7 +4,7 @@ description: Builds a Swift package for Android and runs the tests on an Android
 branding:
   icon: smartphone
   color: red
-  
+
 inputs:
   android-sdk-url:
     description: |
@@ -50,11 +50,17 @@ runs:
         VERSION=$(lsb_release -rs)
         echo "UBUNTU_VERSION=$VERSION" >> $GITHUB_ENV
 
-        # Extract the SDK ID
+        # Construct the SDK ID
         echo "SDK_ID=swift-$SWIFT_VERSION-RELEASE-android-$ANDROID_API_LEVEL-$ANDROID_SDK_VERSION" >> $GITHUB_ENV
 
-        # Extract the target triple
+        # Construct the target triple
         echo "TARGET_TRIPLE=${{ inputs.android-arch }}-unknown-linux-android${ANDROID_API_LEVEL}" >> $GITHUB_ENV
+
+         # Construct the Swift prefix
+        echo "SWIFT_PREFIX=swift-${SWIFT_VERSION}-release/ubuntu${UBUNTU_VERSION//./}/swift-${SWIFT_VERSION}-RELEASE" >> $GITHUB_ENV
+             
+        # Construct the Swift ID
+        echo "SWIFT_ID=swift-${SWIFT_VERSION}-RELEASE-ubuntu${UBUNTU_VERSION}" >> $GITHUB_ENV
 
     - name: Show Extracted Versions
       shell: bash
@@ -65,6 +71,8 @@ runs:
         echo "Ubuntu Version: $UBUNTU_VERSION"
         echo "SDK ID: $SDK_ID"
         echo "Target Triple: $TARGET_TRIPLE"
+        echo "Swift Prefix: $SWIFT_PREFIX"
+        echo "Swift ID: $SWIFT_ID"
 
     - name: Checkout Repository
       uses: actions/checkout@v4
@@ -72,8 +80,8 @@ runs:
     - name: Install Swift
       uses: tayloraswift/swift-install-action@master
       with:
-        swift-prefix: swift-${SWIFT_VERSION}-release/ubuntu${UBUNTU_VERSION//./}/swift-${SWIFT_VERSION}-RELEASE
-        swift-id: swift-${SWIFT_VERSION}-RELEASE-ubuntu${UBUNTU_VERSION}
+        swift-prefix: ${{ SWIFT_PREFIX }}
+        swift-id: ${{ SWIFT_ID }}
 
     - name: Check Swift
       shell: bash

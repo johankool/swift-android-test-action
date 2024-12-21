@@ -62,6 +62,9 @@ runs:
         # Construct the Swift ID
         echo "SWIFT_ID=swift-${SWIFT_VERSION}-RELEASE-ubuntu${UBUNTU_VERSION}" >> $GITHUB_ENV
 
+        # Construct the Android sys root
+        echo "ANDROID_SYS_ROOT=swift-${SWIFT_VERSION}-release-android-{ANDROID_API_LEVEL}-sdk/android-27c-sysroot" >> $GITHUB_ENV
+
     - name: Show Extracted Versions
       shell: bash
       run: |
@@ -73,6 +76,7 @@ runs:
         echo "Target Triple: $TARGET_TRIPLE"
         echo "Swift Prefix: $SWIFT_PREFIX"
         echo "Swift ID: $SWIFT_ID"
+        echo "Android Sys Root: $ANDROID_SYS_ROOT"
 
     - name: Checkout Repository
       uses: actions/checkout@v4
@@ -108,7 +112,7 @@ runs:
         mkdir pack
         cp .build/${TARGET_TRIPLE}/debug/*.xctest pack
         
-        cp /home/runner/.config/swiftpm/swift-sdks/${SDK_ID}.artifactbundle/${SDK_ID}-sdk/android-${ANDROID_API_LEVEL}-sysroot/usr/lib/${TARGET_TRIPLE}/lib*.so pack
+        cp /home/runner/.config/swiftpm/swift-sdks/${SDK_ID}.artifactbundle/${ANDROID_SYS_ROOT}/usr/lib/${TARGET_TRIPLE}/lib*.so pack
         rm -f pack/lib{c,dl,log,m,z}.so
 
         set -x

@@ -1,53 +1,119 @@
-name: 'GitHub Action to Cross Compile Swift for Android and Test on Emulator'
-author: 'Johan Kool'
-description: 'Builds and tests a Swift package for Android and runs te tests on an Android emulator.'
+name: GitHub Action to Cross Compile Swift for Android and Test on Emulator
+author: Johan Kool
+description: Builds a Swift package for Android and runs the tests on an Android emulator.
 branding:
-  icon: 'smartphone'
-  color: 'red'
-runs:
-  using: "composite"
-  steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-      - name: Install Swift
-        uses: tayloraswift/swift-install-action@master
-        with:
-          swift-prefix: swift-6.0.2-release/ubuntu2204/swift-6.0.2-RELEASE
-          swift-id: swift-6.0.2-RELEASE-ubuntu22.04
-      - name: Check Swift
-        shell: bash
-        run: swift --version
-      - name: Install Android SDK
-        shell: bash
-        run:
-          swift sdk install https://github.com/finagolfin/swift-android-sdk/releases/download/6.0.2/swift-6.0.2-RELEASE-android-24-0.1.artifactbundle.tar.gz --checksum d75615eac3e614131133c7cc2076b0b8fb4327d89dce802c25cd53e75e1881f4
-      - name: Check Android SDK
-        shell: bash
-        run:
-          swift sdk configure --show-configuration swift-6.0.2-RELEASE-android-24-0.1 x86_64-unknown-linux-android24
-      - name: Build Tests
-        shell: bash
-        run:
-          swift build --build-tests --swift-sdk x86_64-unknown-linux-android24 -Xswiftc -Xclang-linker -Xswiftc -fuse-ld=lld
-      - name: Prepare Android Emulator Test Script
-        shell: bash
-        run: |
-          mkdir pack
-          cp .build/x86_64-unknown-linux-android24/debug/*.xctest pack
-          
-          cp /home/runner/.config/swiftpm/swift-sdks/swift-6.0.2-RELEASE-android-24-0.1.artifactbundle/swift-6.0.2-release-android-24-sdk/android-27c-sysroot/usr/lib/x86_64-linux-android/24/lib*.so pack
-          rm pack/lib{c,dl,log,m,z}.so
+  icon: smartphone
+  color: red
+  
+inputs:
+  android-sdk-url:
+    description: |
+      URL to the Android SDK artifact bundle. This should be a tarball containing the Android SDK for the desired API level and architecture.
+      It should use the same naming convention as finagolfin's Swift Android SDK releases, e.g. `swift-6.0.2-RELEASE-android-24-0.1.artifactbundle.tar.gz`.
+    default: https://github.com/finagolfin/swift-android-sdk/releases/download/6.0.2/swift-6.0.2-RELEASE-android-24-0.1.artifactbundle.tar.gz
 
-          set -x
-          cat > ~/test-toolchain.sh << EOF
-          adb push pack /data/local/tmp
-          adb shell /data/local/tmp/pack/*.xctest
-          EOF
-          
-          chmod +x ~/test-toolchain.sh
-      - name: Run Tests on Android Emulator
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 29
-          arch: x86_64
-          script: ~/test-toolchain.sh
+  android-sdk-checksum:
+    description: Checksum for the Android SDK
+    default: d75615eac3e614131133c7cc2076b0b8fb4327d89dce802c25cd53e75e1881f4
+
+  android-arch:
+    description: Android architecture (x86_64, arm64-v8a)
+    default: x86_64
+
+runs:
+  using: composite
+  steps:
+    - name: Check OS is Linux
+      shell: bash
+      run: |
+        if [[ "$RUNNER_OS" != "Linux" ]]; then
+          echo "This action can only run on Linux."
+          exit 1
+        fi
+
+    - name: Extract Versions
+      shell: bash
+      run: |
+        # Extract the Swift version
+        SWIFT_VERSION=$(echo ${{ inputs.android-sdk-url }} | grep -oP '(?<=/)[0-9]+\.[0-9]+\.[0-9]+(?=/)')
+        echo "SWIFT_VERSION=$SWIFT_VERSION" >> $GITHUB_ENV
+
+        # Extract the Android API level
+        ANDROID_API_LEVEL=$(echo ${{ inputs.android-sdk-url }} | grep -oP '(?<=android-)[0-9]+(?=-)')
+        echo "ANDROID_API_LEVEL=$ANDROID_API_LEVEL" >> $GITHUB_ENV
+
+        # Extract the Android SDK version
+        ANDROID_SDK_VERSION=$(echo ${{ inputs.android-sdk-url }} | grep -oP '(?<=-)[0-9]+\.[0-9]+(?=\.artifactbundle)')
+        echo "ANDROID_SDK_VERSION=$ANDROID_SDK_VERSION" >> $GITHUB_ENV
+
+        # Extract the Ubuntu version 
+        VERSION=$(lsb_release -rs)
+        echo "UBUNTU_VERSION=$VERSION" >> $GITHUB_ENV
+
+        # Extract the SDK ID
+        echo "SDK_ID=swift-$SWIFT_VERSION-RELEASE-android-$ANDROID_API_LEVEL-$ANDROID_SDK_VERSION" >> $GITHUB_ENV
+
+        # Extract the target triple
+        echo "TARGET_TRIPLE=${{ inputs.android-arch }}-unknown-linux-android${ANDROID_API_LEVEL}" >> $GITHUB_ENV
+
+    - name: Show Extracted Versions
+      shell: bash
+      run: |
+        echo "Swift Version: $SWIFT_VERSION"
+        echo "Android API Level: $ANDROID_API_LEVEL"
+        echo "Android SDK Version: $ANDROID_SDK_VERSION"
+        echo "Ubuntu Version: $UBUNTU_VERSION"
+        echo "SDK ID: $SDK_ID"
+        echo "Target Triple: $TARGET_TRIPLE"
+
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Install Swift
+      uses: tayloraswift/swift-install-action@master
+      with:
+        swift-prefix: swift-${SWIFT_VERSION}-release/ubuntu${UBUNTU_VERSION//./}/swift-${SWIFT_VERSION}-RELEASE
+        swift-id: swift-${SWIFT_VERSION}-RELEASE-ubuntu${UBUNTU_VERSION}
+
+    - name: Check Swift
+      shell: bash
+      run: swift --version
+
+    - name: Install Android SDK
+      shell: bash
+      run:
+        swift sdk install ${{ inputs.android-sdk-url }} --checksum ${{ inputs.android-sdk-checksum }}
+
+    - name: Check Android SDK
+      shell: bash
+      run:
+        swift sdk configure --show-configuration ${SDK_ID} ${TARGET_TRIPLE}
+
+    - name: Build Tests
+      shell: bash
+      run:
+        swift build --build-tests --swift-sdk ${TARGET_TRIPLE} -Xswiftc -Xclang-linker -Xswiftc -fuse-ld=lld
+
+    - name: Prepare Android Emulator Test Script
+      shell: bash
+      run: |
+        mkdir pack
+        cp .build/${TARGET_TRIPLE}/debug/*.xctest pack
+        
+        cp /home/runner/.config/swiftpm/swift-sdks/${SDK_ID}.artifactbundle/${SDK_ID}-sdk/android-${ANDROID_API_LEVEL}-sysroot/usr/lib/${TARGET_TRIPLE}/lib*.so pack
+        rm -f pack/lib{c,dl,log,m,z}.so
+
+        set -x
+        cat > ~/test-toolchain.sh << EOF
+        adb push pack /data/local/tmp
+        adb shell /data/local/tmp/pack/*.xctest
+        EOF
+        
+        chmod +x ~/test-toolchain.sh
+        
+    - name: Run Tests on Android Emulator
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: ${ANDROID_API_LEVEL}
+        arch: ${{ inputs.android-arch }}
+        script: ~/test-toolchain.sh
